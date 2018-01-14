@@ -1,0 +1,18 @@
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+version = '0.0'
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'Getting to Philosophy',
+                'Implementation-Version': version
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies{
+    testCompile group: 'junit', name: 'junit', version: '4.+'
+}
