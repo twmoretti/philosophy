@@ -1,41 +1,50 @@
-import java.io.BufferedReader;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class Philosophy {
-    private HashSet<String> vistedPages;
+    private Set<String> vistedPages;
     private List<String> path;
 
-    public Philosophy(){
+    Philosophy(){
         vistedPages = new HashSet<>();
         path = new ArrayList<>();
     }
 
-    public String loadPage(String input){
-        if(input == null || input.equals("") || vistedPages.contains(input))
+    public Document loadPage(String nextPage){
+        if(nextPage == null || nextPage.equals("") || vistedPages.contains(nextPage))
             return null; // TODO: Create an exception to show that there is a cycle? Or at least return an error message
-        StringBuilder result = new StringBuilder();
         try {
-            // TODO: turn into actual api call and do validation
-            URL url = new URL(input);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-            BufferedReader rd = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            String line;
-            while ((line = rd.readLine()) != null) {
-                result.append(line);
-            }
-            rd.close();
-            path.add(input);
-            vistedPages.add(input);
-            return result.toString();
+            Document results = Jsoup.connect(nextPage).get();
+            vistedPages.add(nextPage);
+            path.add(nextPage);
+            return results;
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public String findNextLink(Document currentPage){
+        // Load the body of the article
+        Element body = currentPage.body();
+        // The start of the actual article will always start with a paragraph tag
+        Elements paragraphs = body.select("p");
+        // TODO need to add validation that this link is valid (i.e. that it isn't italic or in parenthesises)
+        if(paragraphs.isEmpty()){
+            return null; // TODO: Decide if we should create exceptions or just have special messages
+        }
+        Elements wikiLinks = paragraphs.first().select("a[href*=/wiki/]");
+        if(wikiLinks.isEmpty()){
+            return null; // TODO: Decide if we should create exceptions or just have special messages
+        }
+        return wikiLinks.first().attr("href");
     }
 }
