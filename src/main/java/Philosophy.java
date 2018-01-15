@@ -12,10 +12,12 @@ import java.util.Set;
 public class Philosophy {
     private Set<String> vistedPages;
     private List<String> path;
+    private int numberOfSteps;
 
     Philosophy(){
         vistedPages = new HashSet<>();
         path = new ArrayList<>();
+        numberOfSteps = 0;
     }
 
     public Document loadPage(String nextPage){
@@ -54,6 +56,10 @@ public class Philosophy {
 
     private Element firstValidLink(Elements links){
         for (Element link: links) {
+            if(     link.attr("href").contains("Help:") ||
+                    link.attr("href").contains("File:") ||
+                    link.attr("href").contains("Wikipedia:"))
+                continue;
             String surroundingHtml = link.parent().toString();
             String toStart = surroundingHtml.substring(0, surroundingHtml.indexOf(link.toString()));
             // Strip out any complete parentheses pairs
@@ -67,5 +73,39 @@ public class Philosophy {
                 return link;
         }
         return null;
+    }
+
+    public String walkThePath(String url){
+        if(url.toUpperCase().contains("/wiki/Philosophy".toUpperCase()))
+            return "You have landed on Philosophy!";
+
+        if(!url.toUpperCase().contains("en.wikipedia.org".toUpperCase()))
+            return "You must provide a page from the English Wikipedia!";
+
+        Document page = loadPage(url);
+        if(page == null)
+            return "We have found a cycle! Cannot reach Philosophy!";
+
+        String nextPage = findNextLink(page);
+        if(nextPage == null)
+            return "We have found a dead end! Cannot reach Philosophy!";
+
+        String nextUrl = "https://en.wikipedia.org" + nextPage;
+        numberOfSteps++;
+        if(numberOfSteps > 100)
+            return "We were unable to reach Philosophy after 100 steps!";
+
+        return walkThePath(nextUrl);
+    }
+
+    public static void main(String[] args) {
+        Philosophy phil = new Philosophy();
+        String result = phil.walkThePath("https://en.wikipedia.org/wiki/Ankylosaurus");
+        System.out.println(result);
+        System.out.println("Number of steps taken: " + phil.numberOfSteps);
+        System.out.println("Path taken:");
+        for (String step: phil.path) {
+            System.out.println("\t" + step);
+        }
     }
 }
