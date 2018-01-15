@@ -48,7 +48,7 @@ public class PhilosophyTest {
         // TODO: create a document in the test framework so the page being edited will not effect the test
         Document doc = phil.loadPage("https://en.wikipedia.org/wiki/Philosophy");
         String result = phil.findNextLink(doc);
-        assertEquals("/wiki/Greek_language", result);
+        assertEquals("/wiki/Education", result);
     }
 
     @Test

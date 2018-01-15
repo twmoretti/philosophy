@@ -37,14 +37,35 @@ public class Philosophy {
         Element body = currentPage.body();
         // The start of the actual article will always start with a paragraph tag
         Elements paragraphs = body.select("p");
-        // TODO need to add validation that this link is valid (i.e. that it isn't italic or in parenthesises)
         if(paragraphs.isEmpty()){
             return null; // TODO: Decide if we should create exceptions or just have special messages
         }
-        Elements wikiLinks = paragraphs.first().select("a[href*=/wiki/]");
+        Elements wikiLinks = paragraphs.first().select("a[href^=/wiki/]");
         if(wikiLinks.isEmpty()){
             return null; // TODO: Decide if we should create exceptions or just have special messages
         }
-        return wikiLinks.first().attr("href");
+        // Find the first link that is valid:
+        Element link = firstValidLink(wikiLinks);
+        if(link == null){
+            return null; // TODO: Decide if we should create exceptions or just have special messages
+        }
+        return link.attr("href");
+    }
+
+    private Element firstValidLink(Elements links){
+        for (Element link: links) {
+            String surroundingHtml = link.parent().toString();
+            String toStart = surroundingHtml.substring(0, surroundingHtml.indexOf(link.toString()));
+            // Strip out any complete parentheses pairs
+            while(toStart.contains("(") && toStart.contains(")")){
+                toStart = toStart.substring(toStart.indexOf(')') + 1);
+            }
+            while(toStart.contains("<i>") && toStart.contains("</i>")){
+                toStart = toStart.substring(toStart.indexOf("</i>") + 1);
+            }
+            if(!(toStart.contains("(") || toStart.contains("<i>")))
+                return link;
+        }
+        return null;
     }
 }
