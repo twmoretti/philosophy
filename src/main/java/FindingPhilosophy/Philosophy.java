@@ -1,5 +1,6 @@
 package FindingPhilosophy;
 
+import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -46,7 +47,12 @@ public class Philosophy {
             visitedPages.add(nextPage);
             path.add(nextPage);
             return results;
-        } catch (IOException e) {
+        } catch (HttpStatusException e){
+            // TODO This is gross, figure out a better way
+            // Fake an empty document to get the correct error
+            Document results = Jsoup.parse("<html><head><title>blank</title></head><body>blank</body></html>");
+            return results;
+        }catch (IOException e) {
             e.printStackTrace();
             return null;
         }
