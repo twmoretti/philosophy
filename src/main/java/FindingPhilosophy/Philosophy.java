@@ -4,6 +4,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -11,19 +12,27 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static java.time.format.DateTimeFormatter.BASIC_ISO_DATE;
 
 
 @Controller
 public class Philosophy {
     private Set<String> visitedPages;
     private List<String> path;
+    private String finalPath;
+    private String startingPage;
     private int numberOfSteps;
 
-    Philosophy(){
+    @Autowired
+    private PathRepository repository;
+
+    public Philosophy(){
         visitedPages = new HashSet<>();
         path = new ArrayList<>();
         numberOfSteps = 0;
@@ -96,22 +105,27 @@ public class Philosophy {
         return count;
     }
 
-    private String walkThePath(String url){
-        if(url.toUpperCase().contains("/wiki/Philosophy".toUpperCase())) {
+    private String walkThePath(String url) {
+        if (url.toUpperCase().contains("/wiki/Philosophy".toUpperCase())) {
             path.add(url);
             numberOfSteps++;
+            finalPath = finalizePath();
             return "You have landed on Philosophy!";
         }
 
         Document page = loadPage(url);
-        if(page == null) {
+        if (page == null) {
             path.add("Cycle here: " + url);
+            finalPath = finalizePath();
             return "We have found a cycle! Cannot reach Philosophy!";
         }
 
         String nextPage = findNextLink(page);
-        if(nextPage == null)
+        if (nextPage == null){
+            path.add("Dead end here: " + url);
+            finalPath = finalizePath();
             return "We have found a dead end! Cannot reach Philosophy!";
+        }
 
         String nextUrl = "https://en.wikipedia.org" + nextPage;
         numberOfSteps++;
@@ -119,6 +133,26 @@ public class Philosophy {
             return "We were unable to reach Philosophy after 100 steps!";
 
         return walkThePath(nextUrl);
+    }
+
+    private String finalizePath(){
+        StringBuilder sb = new StringBuilder();
+        for (String step: path) {
+            sb.append("<li>");
+            sb.append(step);
+            sb.append("</li>");
+        }
+        return sb.toString();
+    }
+
+    public String addNewPath(Philosophy phil){
+        Path p = new Path();
+        p.setArticle(phil.startingPage);
+        p.setPath(phil.finalPath);
+        p.setNumHops(phil.numberOfSteps);
+        p.setLastRun(LocalDateTime.now().format(BASIC_ISO_DATE));
+        repository.save(p);
+        return "Saved";
     }
 
     @RequestMapping(value="/findingPhilosophy", method=RequestMethod.POST)
@@ -130,6 +164,8 @@ public class Philosophy {
         }
 
         Philosophy phil = new Philosophy();
+        phil.startingPage = url;
+
         String tmpResults = phil.walkThePath(url);
 
         if(tmpResults.equals("We were unable to reach Philosophy after 100 steps!")){
@@ -146,13 +182,10 @@ public class Philosophy {
         sb.append("Path taken:");
         sb.append("<br />");
         sb.append("<ul>");
-        for (String step: phil.path) {
-            sb.append("<li>");
-            sb.append(step);
-            sb.append("</li>");
-        }
+        sb.append(phil.finalPath);
         sb.append("</ul>");
 
+        addNewPath(phil);
         model.addAttribute("results", sb.toString());
         return "findingPhilosophy";
     }
