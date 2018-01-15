@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Begin Your Search!</title>
+</head>
+<body>
+    <form action="#" th:action="@{/findingPhilosophy}" th:object="${urlHolder}" method="post">
+        Wikipedia Article Link: <input type="text" th:field="*{url}" /><br />
+        <input type="submit" />
+    </form>
+    <p>This may take some time.</p>
+</body>
+</html>

@@ -1,7 +1,14 @@
+package FindingPhilosophy;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -9,23 +16,25 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+
+@Controller
 public class Philosophy {
-    private Set<String> vistedPages;
+    private Set<String> visitedPages;
     private List<String> path;
     private int numberOfSteps;
 
     Philosophy(){
-        vistedPages = new HashSet<>();
+        visitedPages = new HashSet<>();
         path = new ArrayList<>();
         numberOfSteps = 0;
     }
 
     public Document loadPage(String nextPage){
-        if(nextPage == null || nextPage.equals("") || vistedPages.contains(nextPage))
+        if(nextPage == null || nextPage.equals("") || visitedPages.contains(nextPage))
             return null; // TODO: Create an exception to show that there is a cycle? Or at least return an error message
         try {
             Document results = Jsoup.connect(nextPage).get();
-            vistedPages.add(nextPage);
+            visitedPages.add(nextPage);
             path.add(nextPage);
             return results;
         } catch (IOException e) {
@@ -87,16 +96,18 @@ public class Philosophy {
         return count;
     }
 
-    public String walkThePath(String url){
-        if(url.toUpperCase().contains("/wiki/Philosophy".toUpperCase()))
+    private String walkThePath(String url){
+        if(url.toUpperCase().contains("/wiki/Philosophy".toUpperCase())) {
+            path.add(url);
+            numberOfSteps++;
             return "You have landed on Philosophy!";
-
-        if(!url.toUpperCase().contains("en.wikipedia.org".toUpperCase()))
-            return "You must provide a page from the English Wikipedia!";
+        }
 
         Document page = loadPage(url);
-        if(page == null)
+        if(page == null) {
+            path.add("Cycle here: " + url);
             return "We have found a cycle! Cannot reach Philosophy!";
+        }
 
         String nextPage = findNextLink(page);
         if(nextPage == null)
@@ -110,14 +121,49 @@ public class Philosophy {
         return walkThePath(nextUrl);
     }
 
-    public static void main(String[] args) {
-        Philosophy phil = new Philosophy();
-        String result = phil.walkThePath("https://en.wikipedia.org/wiki/Logic");
-        System.out.println(result);
-        System.out.println("Number of steps taken: " + phil.numberOfSteps);
-        System.out.println("Path taken:");
-        for (String step: phil.path) {
-            System.out.println("\t" + step);
+    @RequestMapping(value="/findingPhilosophy", method=RequestMethod.POST)
+    public String findingPhilosophy(@ModelAttribute(value="url") UrlHolder urlHolder, Model model){
+        String url = urlHolder.getUrl();
+        if(!url.toUpperCase().contains("en.wikipedia.org".toUpperCase())) {
+            model.addAttribute("results", "You must provide a page from the English Wikipedia!");
+            return "findingPhilosophy";
         }
+
+        Philosophy phil = new Philosophy();
+        String tmpResults = phil.walkThePath(url);
+
+        if(tmpResults.equals("We were unable to reach Philosophy after 100 steps!")){
+            model.addAttribute("results", tmpResults);
+            return "findingPhilosophy";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(tmpResults);
+        sb.append("<br />");
+        sb.append("Steps taken: ");
+        sb.append(phil.numberOfSteps);
+        sb.append("<br />");
+        sb.append("Path taken:");
+        sb.append("<br />");
+        sb.append("<ul>");
+        for (String step: phil.path) {
+            sb.append("<li>");
+            sb.append(step);
+            sb.append("</li>");
+        }
+        sb.append("</ul>");
+
+        model.addAttribute("results", sb.toString());
+        return "findingPhilosophy";
+    }
+
+    @RequestMapping(value="/beginSearch",method=RequestMethod.GET)
+    public String showForm(Model model) {
+        UrlHolder urlHolder = new UrlHolder();
+        urlHolder.setUrl("url");
+
+        model.addAttribute("urlHolder", urlHolder);
+        return "beginSearch";
     }
 }
+

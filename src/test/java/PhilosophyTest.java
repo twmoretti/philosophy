@@ -1,3 +1,4 @@
+import FindingPhilosophy.Philosophy;
 import org.jsoup.nodes.Document;
 import org.junit.After;
 import org.junit.Before;
@@ -46,7 +47,7 @@ public class PhilosophyTest {
     @Test
     public void findNextLink_Test(){
         // TODO: create a document in the test framework so the page being edited will not effect the test
-        Document doc = phil.loadPage("https://en.wikipedia.org/wiki/Philosophy");
+        Document doc = phil.loadPage("https://en.wikipedia.org/wiki/FindingPhilosophy.Philosophy");
         String result = phil.findNextLink(doc);
         assertEquals("/wiki/Education", result);
     }
